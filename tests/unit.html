@@ -1,0 +1,65 @@
+<!doctype html><meta charset="utf-8"><title>Bill Studio unit tests</title>
+<pre id="out"></pre>
+<script type="module">
+import { calculate } from '../assets/js/tax/engine.js';
+import { newBusiness } from '../assets/js/store.js';
+import { numberToWords, amountInWords } from '../assets/js/lib/words.js';
+import { validateGSTIN, gstinChecksum, validateABN } from '../assets/js/lib/validators.js';
+import { fyLabel } from '../assets/js/lib/dates.js';
+const out = document.getElementById('out'); let pass = 0, fail = 0;
+const eq = (name, got, want) => { const ok = JSON.stringify(got) === JSON.stringify(want); ok ? pass++ : fail++; out.textContent += `${ok ? 'PASS' : 'FAIL'} ${name}${ok ? '' : ` — got ${JSON.stringify(got)} want ${JSON.stringify(want)}`}\n`; };
+const IN = Object.assign(newBusiness('IN'), { region: '27' });
+const item = (o) => ({ qty: 1, rate: 1000, taxId: 'gst18', disc: 0, discType: 'pct', ...o });
+const doc = (o) => ({ items: [item({})], placeOfSupply: '27', ...o });
+
+eq('IN default tax is 18%', IN.defaultTaxId, 'gst18');
+let t = calculate(doc({}), IN);
+eq('intra-state CGST+SGST', t.taxSummary.map((x) => [x.name, x.rate, x.amount]), [['CGST', 9, 90], ['SGST', 9, 90]]);
+eq('intra total', t.total, 1180);
+t = calculate(doc({ placeOfSupply: '09' }), IN);
+eq('inter-state IGST', t.taxSummary.map((x) => [x.name, x.amount]), [['IGST', 180]]);
+t = calculate(doc({ inclusive: true, items: [item({ rate: 1180 })] }), IN);
+eq('inclusive back-calc', [t.taxable, t.tax, t.total], [1000, 180, 1180]);
+t = calculate(doc({ placeOfSupply: '04' }), { ...IN, region: '04' });
+eq('UT uses UTGST', t.taxSummary.map((x) => x.name), ['CGST', 'UTGST']);
+t = calculate(doc({}), { ...IN, taxScheme: 'composition' });
+eq('composition: no tax', [t.tax, t.total], [0, 1000]);
+t = calculate(doc({ items: [item({ disc: 10 })] }), IN);
+eq('line discount 10%', [t.taxable, t.total], [900, 1062]);
+t = calculate(doc({ discount: 100, discountType: 'amt' }), IN);
+eq('bill discount amount', [t.subtotal, t.extraDiscount, t.taxable, t.total], [1000, 100, 900, 1062]);
+t = calculate(doc({ items: [item({ rate: 1000.34 })], roundOff: true }), IN);
+eq('round off', [t.total, t.roundOff], [1180, -0.4]);
+t = calculate(doc({ reverseCharge: true }), IN);
+eq('RCM excludes tax from total', [t.tax, t.total], [180, 1000]);
+t = calculate(doc({ charges: [{ label: 'Shipping', amount: 100, taxId: 'gst18' }] }), IN);
+eq('taxable shipping', t.total, 1298);
+t = calculate(doc({ items: [item({ cess: 12 })] }), IN);
+eq('cess', t.tax, 300);
+const CA = newBusiness('CA');
+t = calculate({ items: [{ qty: 1, rate: 100, taxId: 'qc' }] }, CA);
+eq('Canada QC GST+QST', t.taxSummary.map((x) => [x.name, x.amount]), [['GST', 5], ['QST', 9.98]]);
+const JP = newBusiness('JP');
+t = calculate({ items: [{ qty: 3, rate: 333, taxId: JP.defaultTaxId }] }, JP);
+eq('JPY zero decimals', [t.dp, t.tax, t.total], [0, 100, 1099]);
+const DE = newBusiness('DE');
+eq('DE default 19%', DE.defaultTaxId, 'vat-19');
+t = calculate({ items: [{ qty: 2, rate: 49.99, taxId: 'vat-19' }] }, DE);
+eq('DE VAT', [t.tax, t.total], [19, 118.98]);
+t = calculate({ items: [{ qty: 1, rate: 100, taxId: 'vat-19' }], taxExempt: true }, DE);
+eq('tax exempt', t.tax, 0);
+
+eq('words intl', numberToWords(1234567), 'One Million Two Hundred Thirty-Four Thousand Five Hundred Sixty-Seven');
+eq('words indian', numberToWords(12345678, 'indian'), 'One Crore Twenty-Three Lakh Forty-Five Thousand Six Hundred Seventy-Eight');
+eq('amount INR', amountInWords(1180.5, 'INR', 'indian'), 'One Thousand One Hundred Eighty Rupees and Fifty Paise Only');
+eq('amount USD', amountInWords(19.99, 'USD'), 'Nineteen Dollars and Ninety-Nine Cents Only');
+eq('GSTIN valid', validateGSTIN('27AAPFU0939F1ZV').ok, true);
+eq('GSTIN bad checksum', validateGSTIN('27AAPFU0939F1ZA').ok, false);
+eq('GSTIN state', validateGSTIN('27AAPFU0939F1ZV').state, '27');
+eq('ABN valid', validateABN('51 824 753 556').ok, true);
+eq('FY India before April', fyLabel('2026-03-31', 4), '25-26');
+eq('FY India April', fyLabel('2026-04-01', 4), '26-27');
+eq('FY calendar', fyLabel('2026-10-15', 1), '2026');
+out.textContent += `\n${pass} passed, ${fail} failed\n`;
+document.title = fail ? 'FAILED' : 'PASSED';
+</script>
