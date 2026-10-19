@@ -4,7 +4,12 @@ const CACHE = `bill-studio-${VERSION}`;
 const FILES = __FILES__;
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
+  // Don't take over a running app mid-session — the page asks us to activate when the user agrees.
+  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)));
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data === 'skipWaiting') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {

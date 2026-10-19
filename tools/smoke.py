@@ -30,7 +30,8 @@ with Browser(w, h, mobile=MOBILE) as b:
         b.click('[data-next]'); b.wait('document.querySelector("[name=name]")')
         b.eval('''(()=>{const set=(n,v)=>{const e=document.querySelector(`[name=${n}]`); if(e){e.value=v; e.dispatchEvent(new Event('input',{bubbles:true}));}};
           set('name','Sharma Electronics'); set('address','14 MG Road, Andheri East'); set('city','Mumbai'); set('postal','400069'); set('phone','+91 98200 12345'); set('email','billing@sharma.example');
-          set('taxId', document.querySelector('[name=region]') ? '27AAPFU0939F1ZV' : 'GB123456789'); })()''')
+          const ids={IN:'27AAPFU0939F1ZV',DE:'DE123456789',GB:'GB123456789',US:'12-3456789',AU:'51824753556',AE:'100123456700003'};
+          set('taxId', ids['%s'] || ''); set('salesTaxRate','8.875'); if (document.querySelector('[name=region]') && !document.querySelector('[name=region]').value) set('region', '27'); })()''' % COUNTRY)
         S('03-details')
         b.click('[data-finish]')
         b.wait('document.querySelector(".stat")', 15)
@@ -53,7 +54,7 @@ with Browser(w, h, mobile=MOBILE) as b:
         time.sleep(0.3)
         b.eval('''(()=>{const q=document.querySelector('[data-k="items.0.qty"]'); q.value='3'; q.dispatchEvent(new Event('input',{bubbles:true}));})()''')
         b.click('[data-add]')
-        b.eval('''(()=>{const set=(k,v)=>{const e=document.querySelector(`[data-k="${k}"]`); e.value=v; e.dispatchEvent(new Event('input',{bubbles:true}));}; set('items.1.name','On-site installation'); set('items.1.rate','1500'); set('items.1.qty','2');})()''')
+        b.eval('''(()=>{const set=(k,v)=>{const e=document.querySelector(`[data-k="${k}"]`); e.value=v; e.dispatchEvent(new Event('input',{bubbles:true}));}; set('items.1.name','On-site installation'); set('items.1.rate','1500'); set('items.1.qty','2'); if (document.querySelector('[data-k="items.1.hsn"]')) set('items.1.hsn','998713');})()''')
         time.sleep(0.8); S('07-editor-filled', True)
         b.click('[data-save]')
         b.wait('location.hash.match(/#\\/bills\\/[\\w-]+$/) && document.querySelector("[data-paper] .bill-page")', 12)

@@ -2,7 +2,9 @@
 <pre id="out"></pre>
 <script type="module">
 import { calculate } from '../assets/js/tax/engine.js';
-import { newBusiness } from '../assets/js/store.js';
+import { newBusiness, docTitle } from '../assets/js/store.js';
+import { taxIdRule, businessTaxError } from '../assets/js/tax/rules.js';
+import { validateTaxId } from '../assets/js/lib/validators.js';
 import { numberToWords, amountInWords } from '../assets/js/lib/words.js';
 import { validateGSTIN, gstinChecksum, validateABN } from '../assets/js/lib/validators.js';
 import { fyLabel } from '../assets/js/lib/dates.js';
@@ -41,7 +43,7 @@ t = calculate({ items: [{ qty: 1, rate: 100, taxId: 'qc' }] }, CA);
 eq('Canada QC GST+QST', t.taxSummary.map((x) => [x.name, x.amount]), [['GST', 5], ['QST', 9.98]]);
 const JP = newBusiness('JP');
 t = calculate({ items: [{ qty: 3, rate: 333, taxId: JP.defaultTaxId }] }, JP);
-eq('JPY zero decimals', [t.dp, t.tax, t.total], [0, 100, 1099]);
+eq('JPY: tax once per rate, rounded down', [t.dp, t.tax, t.total], [0, 99, 1098]);
 const DE = newBusiness('DE');
 eq('DE default 19%', DE.defaultTaxId, 'vat-19');
 t = calculate({ items: [{ qty: 2, rate: 49.99, taxId: 'vat-19' }] }, DE);
@@ -60,6 +62,44 @@ eq('ABN valid', validateABN('51 824 753 556').ok, true);
 eq('FY India before April', fyLabel('2026-03-31', 4), '25-26');
 eq('FY India April', fyLabel('2026-04-01', 4), '26-27');
 eq('FY calendar', fyLabel('2026-10-15', 1), '2026');
+// Legal titles
+const reg = { ...IN, taxScheme: 'regular' }, comp = { ...IN, taxScheme: 'composition' }, unreg = { ...IN, taxScheme: 'unregistered' };
+eq('IN regular invoice title', docTitle('invoice', reg), 'Tax Invoice');
+eq('IN regular cash sale title', docTitle('receipt', reg), 'Tax Invoice');
+eq('IN composition title', docTitle('invoice', comp), 'Bill of Supply');
+eq('IN unregistered title', docTitle('invoice', unreg), 'Invoice');
+eq('AU unregistered title', docTitle('invoice', { ...newBusiness('AU'), taxScheme: 'unregistered' }), 'Invoice');
+eq('SA B2C title', docTitle('invoice', newBusiness('SA'), { customer: {} }), 'Simplified Tax Invoice');
+eq('SA B2B title', docTitle('invoice', newBusiness('SA'), { customer: { taxId: '300000000000003' } }), 'Tax Invoice');
+eq('AE credit note title', docTitle('credit', newBusiness('AE')), 'Tax Credit Note');
+// Registration rules
+eq('IN regular needs GSTIN', taxIdRule('IN', 'regular').required, true);
+eq('IN composition needs GSTIN', taxIdRule('IN', 'composition').required, true);
+eq('IN unregistered hides GSTIN', taxIdRule('IN', 'unregistered').show, false);
+eq('US EIN optional', taxIdRule('US', 'regular').required, false);
+eq('DE VAT id required', taxIdRule('DE', 'regular').required, true);
+eq('IN missing GSTIN blocked', !!businessTaxError({ ...reg, taxId: '' }), true);
+eq('IN GSTIN/state mismatch blocked', !!businessTaxError({ ...reg, taxId: '27AAPFU0939F1ZV', region: '29' }), true);
+eq('IN valid setup ok', businessTaxError({ ...reg, taxId: '27AAPFU0939F1ZV', region: '27' }), '');
+eq('IN unregistered ok without GSTIN', businessTaxError({ ...unreg, taxId: '' }), '');
+eq('DE Kleinunternehmer needs Steuernummer', !!businessTaxError({ ...newBusiness('DE'), taxScheme: 'unregistered' }), true);
+eq('GB VAT format', [validateTaxId('GB', 'GB123456789').ok, validateTaxId('GB', '12345').ok], [true, false]);
+eq('DE VAT format', [validateTaxId('DE', 'DE123456789').ok, validateTaxId('DE', '123456789').ok, validateTaxId('DE', 'DE12').ok], [true, true, false]);
+eq('DE seller, FR customer VAT', validateTaxId('DE', 'FRXX123456789').ok, true);
+eq('SA VAT format', [validateTaxId('SA', '300000000000003').ok, validateTaxId('SA', '123456789012345').ok], [true, false]);
+eq('AE TRN format', validateTaxId('AE', '100123456700003').ok, true);
+eq('JP T-number', validateTaxId('JP', 'T1234567890123').ok, true);
+eq('CA BN', validateTaxId('CA', '123456789RT0001').ok, true);
+// Export / SEZ and LUT
+t = calculate(doc({ supplyType: 'sez_igst' }), IN);
+eq('SEZ in same state is IGST', t.taxSummary.map((x) => x.name), ['IGST']);
+t = calculate(doc({ supplyType: 'export_lut', placeOfSupply: '96' }), IN);
+eq('Export under LUT: no tax', [t.tax, t.total], [0, 1000]);
+t = calculate(doc({ items: [item({ rate: 1180, inclusive: true }), item({ rate: 1000 })] }), IN);
+eq('MRP line inclusive, other exclusive', [t.taxable, t.total], [2000, 2360]);
+// Rates
+eq('Finland reduced 13.5%', newBusiness('FI').taxes.map((x) => x.label).includes('VAT 13.5%'), true);
+eq('Lithuania 12%', newBusiness('LT').taxes.map((x) => x.label).includes('VAT 12%'), true);
 out.textContent += `\n${pass} passed, ${fail} failed\n`;
 document.title = fail ? 'FAILED' : 'PASSED';
 </script>
