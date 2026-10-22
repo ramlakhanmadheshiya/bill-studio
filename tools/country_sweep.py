@@ -17,6 +17,8 @@ SAMPLE_IDS = {
     'ES': 'ESA1234567B', 'FI': 'FI12345678', 'FR': 'FRAB123456789', 'HR': 'HR12345678901', 'HU': 'HU12345678', 'IE': 'IE1234567T', 'IT': 'IT12345678901',
     'LT': 'LT123456789', 'LU': 'LU12345678', 'LV': 'LV12345678901', 'MT': 'MT12345678', 'NL': 'NL123456789B01', 'PL': 'PL1234567890', 'PT': 'PT123456789',
     'RO': 'RO1234567', 'SE': 'SE123456789012', 'SI': 'SI12345678', 'SK': 'SK1234567890',
+    'KR': '123-45-67890', 'TW': '12345678', 'CN': '91350100M000100Y43', 'TR': '1234567890', 'IL': '512345678', 'TZ': '123-456-789',
+    'UG': '1000123456', 'MA': '001234567000089', 'AR': '20-12345678-9', 'CL': '76.123.456-7', 'CO': '900123456-7', 'PE': '20123456789', 'IS': '123456',
 }
 # Tax vocabulary that must only appear where it belongs.
 VOCAB = ['GSTIN', 'HSN', 'IGST', 'CGST', 'SGST', 'UTGST', 'PAN', 'GST', 'VAT', 'HST', 'PST', 'QST', 'RST', 'IVA', 'PPN', 'SST', 'Consumption tax',
@@ -48,7 +50,8 @@ def run(code, scheme, c, out):
         b.click(f'[data-c="{code}"]'); time.sleep(0.2); b.click('[data-next]'); b.wait('document.querySelector("[name=name]")')
         def setf(n, v):
             b.eval(f'(()=>{{const e=document.querySelector("[name={n}]"); if(!e) return; e.value={json.dumps(v)}; e.dispatchEvent(new Event("input",{{bubbles:true}})); e.dispatchEvent(new Event("change",{{bubbles:true}}));}})()'); time.sleep(0.25)
-        setf('taxScheme', scheme)
+        if c.get('noTax') and scheme == 'regular': return []
+        b.eval(f'(()=>{{const e=document.querySelector("select[name=taxScheme]"); if(e){{e.value={json.dumps(scheme)}; e.dispatchEvent(new Event("change",{{bubbles:true}}));}}}})()'); time.sleep(0.25)
         setf('name', f'{code} Test Co')
         if scheme == 'regular':
             setf('taxId', SAMPLE_IDS.get(code, 'TAX-12345'))

@@ -7,7 +7,10 @@ import { taxIdRule, businessTaxError } from '../assets/js/tax/rules.js';
 import { validateTaxId } from '../assets/js/lib/validators.js';
 import { numberToWords, amountInWords } from '../assets/js/lib/words.js';
 import { validateGSTIN, gstinChecksum, validateABN } from '../assets/js/lib/validators.js';
-import { fyLabel } from '../assets/js/lib/dates.js';
+import { fyLabel, fmtDate } from '../assets/js/lib/dates.js';
+import { round, fmtRate } from '../assets/js/lib/money.js';
+import { normTaxId } from '../assets/js/tax/rules.js';
+import { swissPayload } from '../assets/js/lib/qr.js';
 const out = document.getElementById('out'); let pass = 0, fail = 0;
 const eq = (name, got, want) => { const ok = JSON.stringify(got) === JSON.stringify(want); ok ? pass++ : fail++; out.textContent += `${ok ? 'PASS' : 'FAIL'} ${name}${ok ? '' : ` — got ${JSON.stringify(got)} want ${JSON.stringify(want)}`}\n`; };
 const IN = Object.assign(newBusiness('IN'), { region: '27' });
@@ -100,6 +103,37 @@ eq('MRP line inclusive, other exclusive', [t.taxable, t.total], [2000, 2360]);
 // Rates
 eq('Finland reduced 13.5%', newBusiness('FI').taxes.map((x) => x.label).includes('VAT 13.5%'), true);
 eq('Lithuania 12%', newBusiness('LT').taxes.map((x) => x.label).includes('VAT 12%'), true);
+// Money rounding: half-up on the decimal value (binary floats sit just below these halves)
+eq('round 277.775', round(277.775, 2), 277.78);
+eq('round 1.005', round(1.005, 2), 1.01);
+eq('round 2.675', round(2.675, 2), 2.68);
+eq('round 10.235', round(10.235, 2), 10.24);
+eq('round -277.775', round(-277.775, 2), -277.78);
+eq('round 1111.1*0.25', round(1111.1 * 0.25, 2), 277.78);
+eq('round 3dp', round(1.0005, 3), 1.001);
+eq('round 0dp', round(2.5, 0), 3);
+eq('round 1.004 stays', round(1.004, 2), 1);
+t = calculate({ items: [{ qty: 1, rate: 1111.1, taxId: 'vat-25', disc: 0 }] }, newBusiness('SE'));
+eq('25% VAT on 1111.10 = 277.78', [t.tax, t.total], [277.78, 1388.88]);
+// Default terms carry no unlawful no-returns clause
+eq('default terms', /taken back/i.test(newBusiness('DE').terms), false);
+// Titles
+eq('PK sales tax invoice', docTitle('invoice', newBusiness('PK')), 'Sales Tax Invoice');
+eq('BR invoice (no VAT)', docTitle('invoice', newBusiness('BR')), 'Invoice');
+eq('OM tax invoice', docTitle('invoice', newBusiness('OM')), 'Tax Invoice');
+eq('LK tax invoice', docTitle('invoice', newBusiness('LK')), 'Tax Invoice');
+// No-tax countries
+eq('QA no tax', [newBusiness('QA').taxScheme, newBusiness('QA').currency], ['unregistered', 'QAR']);
+eq('KR 10% default', newBusiness('KR').defaultTaxId, 'vat-10');
+eq('AR default IVA 21', newBusiness('AR').defaultTaxId, 'iva-21');
+eq('KRW words', amountInWords(1500, 'KRW'), 'One Thousand Five Hundred Won Only');
+// Swiss UID keeps its space; others are compacted
+eq('CH UID', normTaxId('CH', 'che-123.456.789  mwst'), 'CHE-123.456.789 MWST');
+eq('IN GSTIN compact', normTaxId('IN', '27aapfu 0939f1zv'), '27AAPFU0939F1ZV');
+eq('JPY rate keeps decimals', fmtRate(1234.56, 'JPY', 'en-US'), '1,234.56');
+eq('JPY whole rate', fmtRate(1235, 'JPY', 'en-US'), '1,235');
+eq('long date in English', fmtDate('2026-10-22', 'de-DE', 'long'), '22 October 2026');
+eq('Swiss QR payload', swissPayload({ iban: 'CH44 3199 9123 0008 8901 2', name: 'Muster AG', street: 'Bahnhofstr. 1', postal: '8001', town: 'Zürich', amount: 10, message: 'Bill 1' }).split('\n').length, 31);
 out.textContent += `\n${pass} passed, ${fail} failed\n`;
 document.title = fail ? 'FAILED' : 'PASSED';
 </script>
