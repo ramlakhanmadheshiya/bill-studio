@@ -102,9 +102,24 @@ class Browser:
             raise RuntimeError('JS error: ' + json.dumps(r['exceptionDetails'].get('exception', {}).get('description', r['exceptionDetails'])))
         return r.get('result', {}).get('value')
 
-    def go(self, url):
+    def go(self, url, login=True):
         self.cmd('Page.navigate', url=url)
         time.sleep(0.6)
+        if login and 'tests/' not in url:
+            self.login()
+
+    def login(self, user='12345', password='67890', timeout=8):
+        # Sign in if the app shows its owner sign-in screen.
+        t = time.time()
+        while time.time() - t < timeout:
+            state = self.eval('document.querySelector("[data-login]") ? "login" : (document.querySelector(".welcome, .shell") ? "app" : "")')
+            if state == 'app': return False
+            if state == 'login':
+                self.eval(f'''(()=>{{const f=document.querySelector("[data-login]"); f.username.value={json.dumps(user)}; f.password.value={json.dumps(password)}; f.requestSubmit();}})()''')
+                time.sleep(1.2)
+                return True
+            time.sleep(0.15)
+        return False
 
     def wait(self, expr, timeout=10):
         t = time.time()

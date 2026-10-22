@@ -93,8 +93,8 @@ with Browser(w, h, mobile=MOBILE) as b:
     def pdf():
         b.eval('location.hash="#/bills"'); b.wait('document.querySelector("[data-id]")'); b.eval('document.querySelector("[data-id]").click()')
         b.wait('document.querySelector("[data-paper] .bill-page")')
-        size = b.eval('''(async()=>{const m=await import('./assets/js/export.js'); const r=await import('./assets/js/render.js'); const s=await import('./assets/js/store.js'); const db=(await import('./assets/js/db.js')).db; const t=await import('./assets/js/tplstore.js');
-          const id=location.hash.split('/').pop(); const d=await db.get('documents',id); const ctx=r.buildContext(d,s.state.business); const tpl=await t.templateFor(d); const blob=await m.pdfBlob(ctx,tpl); return blob.size;})()''')
+        size = b.eval('''(async()=>{const m=await import('./assets/js/print.js'); const r=await import('./assets/js/render.js'); const s=await import('./assets/js/store.js'); const db=(await import('./assets/js/db.js')).db; const t=await import('./assets/js/tplstore.js');
+          const id=location.hash.split('/').pop(); const d=await db.get('documents',id); const ctx=r.buildContext(d,s.state.business); const tpl=await t.templateFor(d); const mount=document.createElement('div'); document.body.append(mount); const sheets=m.buildSheets(()=>ctx, tpl, {paper:'a4', copies:1, labels:[]}, mount); mount.remove(); const blob=await m.pdfFromSheets(sheets,{}); return blob.size;})()''')
         assert size > 20000, f'pdf too small {size}'
         print('     pdf bytes', size)
     step('pdf', pdf)

@@ -14,6 +14,19 @@ Beautiful, free, offline billing for any business in any country.
 - **Private and offline:** all data lives in the browser's IndexedDB on the device. The app is an installable PWA. Backups can be encrypted (AES-GCM).
 - Light and dark themes. Works on phones, tablets and desktops.
 
+## Sign-in, printing, data moving, offline
+- **Owner sign-in:** the default User ID is `12345` and the password is `67890`. Change them in Settings → Owner sign-in. The password is stored as a salted PBKDF2-SHA-256 hash. The app auto-locks after inactivity, and there is a Lock button.
+- **Paper sizes:** the Print and PDF dialog offers:
+  - A4, Letter, Legal
+  - A5 (half page, portrait or landscape), A6 (quarter), A7 (one-eighth)
+  - Half Letter, B5, Executive, DL
+  - Thermal 80 mm and 58 mm, and POS 76 mm rolls
+  - Custom sizes
+  - 2, 3, 4 or 8 bills per A4 sheet with cut lines
+  - Original, Duplicate and Triplicate copies
+- **Move data:** Settings → Full backup / Export a period / Import (Merge or Replace). Exports can be encrypted.
+- **Offline:** `tools/build-offline.py` builds `dist/Bill-Studio-offline.html`, one file that runs by double-clicking it with no internet or server. It also builds `dist/bill-studio-offline.zip`, a folder you can host on any intranet server. Both files are published under `downloads/`.
+
 ## Develop
 No build step and no Node required: it is plain HTML, CSS and ES modules.
 
@@ -21,7 +34,9 @@ No build step and no Node required: it is plain HTML, CSS and ES modules.
 python3 tools/serve.py 8765          # http://127.0.0.1:8765/
 python3 tools/smoke.py http://127.0.0.1:8765/ /tmp/shots            # end-to-end (desktop)
 python3 tools/smoke.py http://127.0.0.1:8765/ /tmp/shots --mobile   # phone
-open http://127.0.0.1:8765/tests/unit.html                          # tax-engine unit tests
+open http://127.0.0.1:8765/tests/unit.html                          # tax-engine + legal-rule unit tests
+python3 tools/features.py                                           # sign-in, every paper size, export/import
+python3 tools/country_sweep.py http://127.0.0.1:8765/ 0 1           # every country × registered/unregistered
 ```
 
 ## Deploy
