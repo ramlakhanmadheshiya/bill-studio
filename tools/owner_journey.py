@@ -255,7 +255,7 @@ def _journey(b, c, out, code, F, O, bad):
         if code not in ('US', 'CA', 'MX', 'PH', 'CL', 'CO') and 'A4' not in paperSel: bad('low', f'Default paper is {paperSel} (A4 expected)')
         b.shot(f'{out}/{code}-5-print.png')
         js('T.qa(".overlay").forEach(o=>o.remove())')
-        F.extend({'sev': 'js-error', 'msg': l} for l in b.logs if 'favicon' not in l)
+        F.extend({'sev': 'js-error', 'msg': l} for l in b.logs if 'favicon' not in l and 'cloudflareinsights' not in l)
     return F, O
 
 if __name__ == '__main__':
