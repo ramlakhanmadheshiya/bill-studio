@@ -307,6 +307,8 @@ Test-script false alarms I checked by hand and **dismissed**:
 | L6 reports | Reports always open at the list. | `views/reports.js` |
 | L7 countries | **17 new countries:** South Korea, Taiwan, China, Hong Kong, Türkiye, Israel, Qatar, Kuwait, Tanzania, Uganda, Morocco, Argentina, Chile, Colombia, Peru and Iceland. Hong Kong, Qatar and Kuwait are set up as no-tax countries, with no registration question. Currency words and WhatsApp dialling codes were added for all countries. **Swiss QR-bill:** Swiss and Liechtenstein IBANs now print a Swiss QR payment code (SPC 0200, structured address, Swiss cross). | `countries.js`, `words.js`, `share.js`, `lib/qr.js`, onboarding and profile |
 
+Found and fixed during the live retest: **a new user's setup could reset to the welcome screen.** On a first visit the offline service worker took control and the app reloaded itself, wiping a half-filled setup. It now reloads only after the owner presses "Update" (`assets/js/app.js`).
+
 Not added: **Ghana**, because its 2026 VAT reform rates could not be confirmed. Ghanaian owners can use "Other country" until then.
 
 ### Retest after the fixes
@@ -314,3 +316,6 @@ Not added: **Ghana**, because its 2026 VAT reform rates could not be confirmed. 
 - Business-owner journey: **73 / 73 countries pass with zero findings**. It now also checks that the no-returns clause is gone and that the DE/AT supply date is printed.
 - Edge scenarios (India composition, Saudi B2C, Qatar, German input VAT and the new supplier fields): pass.
 - Swiss QR-bill: printed on a Swiss invoice with an IBAN.
+- Country sweep (every country, registered and not registered): **146 / 146** with 0 issues.
+- Sign-in, every paper size, export/import (`features.py`): all pass. Smoke tests for India, the US and mobile: pass.
+- **Live site** (theramlakhan.com) owner journey for IN, US, SE, DE, QA and KR: all pass.
