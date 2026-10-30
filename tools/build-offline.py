@@ -83,7 +83,8 @@ readme = f'''Bill Studio — offline & self-hosted package (build {version}, {bu
 2) For a whole office: copy the "web" folder to any web server (IIS, Apache, nginx, NAS, intranet).
    Open it over https:// (or http://localhost). It also installs as an app and works offline.
 
-First sign-in: User ID 12345, password 67890 — change them in Settings right away.
+First time: click Sign up. The first account becomes the Owner (choose your own User ID and password,
+and keep the recovery key safe). Add your team in Team.
 
 Moving data between computers: Settings > Full backup on the old one, then Settings > Import > Replace
 on the new one. To send only some days, use Export a period, then Import > Merge.

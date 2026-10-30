@@ -108,16 +108,25 @@ class Browser:
         if login and 'tests/' not in url:
             self.login()
 
-    def login(self, user='12345', password='67890', timeout=8):
-        # Sign in if the app shows its owner sign-in screen.
+    def login(self, user='owner', password='Test1234pass', timeout=10, name='Test Owner'):
+        """Get past the public home page: sign up as the owner on a fresh device, otherwise log in.
+        Returns True if it signed in / up, False if the app was already open."""
         t = time.time()
         while time.time() - t < timeout:
-            state = self.eval('document.querySelector("[data-login]") ? "login" : (document.querySelector(".welcome, .shell") ? "app" : "")')
+            state = self.eval('document.querySelector(".landing") ? (document.querySelector("[data-signup]") ? "signup" : "login") : (document.querySelector(".welcome, .shell") ? "app" : "")')
             if state == 'app': return False
-            if state == 'login':
-                self.eval(f'''(()=>{{const f=document.querySelector("[data-login]"); f.username.value={json.dumps(user)}; f.password.value={json.dumps(password)}; f.requestSubmit();}})()''')
-                time.sleep(1.2)
+            if state == 'signup':
+                self.eval('document.querySelector("[data-signup]").click()'); time.sleep(0.4)
+                self.eval(f'''(()=>{{const f=document.querySelector(".modal [data-form]"); f.name.value={json.dumps(name)}; f.username.value={json.dumps(user)}; f.password.value={json.dumps(password)}; f.password2.value={json.dumps(password)}; f.requestSubmit();}})()''')
+                time.sleep(1.5)
+                self.eval('(()=>{const a=document.querySelector(".modal [data-ack]"); if(a){a.click(); document.querySelector(".modal [data-ok]").click();}})()')
+                time.sleep(0.8)
                 return True
+            if state == 'login':
+                self.eval('document.querySelector("[data-login]").click()'); time.sleep(0.4)
+                self.eval(f'''(()=>{{const f=document.querySelector(".modal [data-form]"); f.username.value={json.dumps(user)}; f.password.value={json.dumps(password)}; f.requestSubmit();}})()''')
+                time.sleep(1.3)
+                return bool(self.eval('!document.querySelector(".landing")'))
             time.sleep(0.15)
         return False
 

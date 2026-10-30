@@ -15,7 +15,11 @@ Beautiful, free, offline billing for any business in any country.
 - Light and dark themes. Works on phones, tablets and desktops.
 
 ## Sign-in, printing, data moving, offline
-- **Owner sign-in:** the default User ID is `12345` and the password is `67890`. Change them in Settings → Owner sign-in. The password is stored as a salted PBKDF2-SHA-256 hash. The app auto-locks after inactivity, and there is a Lock button.
+- **Sign-up and team:** the app opens on a public home page with Log in / Sign up. There are no default credentials. The first account on a device becomes the **Owner**, who chooses their own User ID and password and gets a one-time **recovery key**.
+- **Roles and permissions** (`assets/js/session.js`): 7 built-in roles (Owner, Administrator, Manager, Accountant, Sales/Billing staff, Store/Inventory, Viewer/Auditor) plus custom roles, built from 26 permissions. People can manage only roles below their own level and can grant only permissions they hold. Members can be limited to certain businesses; staff without "see others' bills" see only their own bills.
+- **Team page** (`#/team`): add members with a temporary password (they must choose their own at first sign-in), reset passwords, disable accounts, transfer ownership, and view or export the **activity log**.
+- Passwords are stored as salted PBKDF2-SHA-256 hashes; 5 wrong passwords lock an account for a few minutes; auto-lock applies after inactivity. Devices from older versions turn their single sign-in into the Owner account automatically.
+- Accounts live on this device. A full backup carries the team, so restoring it on another computer (Restore a backup on the home page) keeps everyone's sign-in.
 - **Paper sizes:** the Print and PDF dialog offers:
   - A4, Letter, Legal
   - A5 (half page, portrait or landscape), A6 (quarter), A7 (one-eighth)
@@ -35,7 +39,9 @@ python3 tools/serve.py 8765          # http://127.0.0.1:8765/
 python3 tools/smoke.py http://127.0.0.1:8765/ /tmp/shots            # end-to-end (desktop)
 python3 tools/smoke.py http://127.0.0.1:8765/ /tmp/shots --mobile   # phone
 open http://127.0.0.1:8765/tests/unit.html                          # tax-engine + legal-rule unit tests
-python3 tools/features.py                                           # sign-in, every paper size, export/import
+python3 tools/features.py                                           # sign-up, every paper size, export/import
+python3 tools/team_test.py                                          # roles, permissions, lockout, recovery, migration
+python3 tools/unit.py                                               # unit tests
 python3 tools/country_sweep.py http://127.0.0.1:8765/ 0 1           # every country × registered/unregistered
 ```
 
