@@ -165,7 +165,7 @@ with Browser(1300, 950, profile=profile) as b:
     check('owner resets password with recovery key', login_as(b, 'anita', 'NewOwner2026') == '')
     b.wait('document.querySelector(".shell")', 10)
     backup = b.eval('(async()=>{const k=await import("./assets/js/backup.js"); return await (await k.makeBackup("pp")).text()})()')
-    logs = [l for l in b.logs if 'favicon' not in l]
+    logs = [l for l in b.logs if 'favicon' not in l and 'cloudflareinsights' not in l]  # Cloudflare's beacon is blocked by our CSP on purpose
     check('no console errors (device 1)', not logs, str(logs[:3]))
 
 # --- New device: restore the full backup from the home page, team comes along
